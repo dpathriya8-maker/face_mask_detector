@@ -1,0 +1,8 @@
+streamlit==1.32.0
+# We use tensorflow-cpu because Streamlit's free tier does not have a GPU. 
+# It saves massive amounts of space and prevents memory crashes!
+tensorflow-cpu==2.15.0
+# We use 'headless' for servers so it doesn't crash trying to open physical popup windows
+opencv-python-headless==4.9.0.80
+numpy<2.0.0
+Pillow
