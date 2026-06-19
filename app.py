@@ -3,6 +3,8 @@ import cv2
 import numpy as np
 from PIL import Image
 from tensorflow.keras.models import load_model
+import os
+import urllib.request
 
 # Set up the webpage design
 st.set_page_config(page_title="Face Mask Detector", page_icon="😷", layout="centered")
@@ -10,16 +12,29 @@ st.set_page_config(page_title="Face Mask Detector", page_icon="😷", layout="ce
 st.title("Face Mask Detector 😷")
 st.write("Upload an image or use your webcam to check if people are wearing masks!")
 
-# Load the trained model (Using @st.cache_resource so it only loads once)
+# 1. Define the local filename and your specific release link
+MODEL_PATH = "face_mask_detector.h5"
+MODEL_URL = "https://github.com/dpathriya8-maker/face_mask_detector/releases/download/v1.0.0/face_mask_detector.h5"
+
+# 2. Check if the model exists locally; if not, download it automatically
+if not os.path.exists(MODEL_PATH):
+    with st.spinner("Downloading the AI Model from GitHub Releases... This might take a minute."):
+        try:
+            urllib.request.urlretrieve(MODEL_URL, MODEL_PATH)
+            st.success("Model downloaded successfully!")
+        except Exception as e:
+            st.error(f"Failed to download the model. Error: {e}")
+            st.stop()
+
+# 3. Load the model normally
 @st.cache_resource
 def load_mask_model():
-    # Make sure your trained model file is named EXACTLY 'mask_model.h5' and is in the same folder!
-    return load_model('mask_model.h5')
+    return load_model(MODEL_PATH)
 
 try:
     model = load_mask_model()
 except Exception as e:
-    st.error("🚨 Could not find 'mask_model.h5'. Please make sure you saved your trained model and uploaded it to GitHub!")
+    st.error(f"🚨 Error loading the model: {e}")
     st.stop()
 
 # Load the Face Detection Haar Cascade
@@ -27,7 +42,7 @@ face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_fronta
 
 # Define the prediction function
 def detect_and_predict_mask(image):
-    # Convert PIL Image to NumPy array (Streamlit uses RGB natively)
+    # Convert PIL Image to NumPy array
     img_array = np.array(image)
     
     # Haar Cascade needs a grayscale image to find faces
@@ -40,7 +55,7 @@ def detect_and_predict_mask(image):
         # Extract just the face area
         face_roi = img_array[y:y+h, x:x+w]
         
-        # Resize to 224x224 and normalize (Exactly like our Jupyter Notebook!)
+        # Resize to 224x224 and normalize
         face_resized = cv2.resize(face_roi, (224, 224))
         face_normalized = face_resized.astype('float32') / 255.0
         face_expanded = np.expand_dims(face_normalized, axis=0)
