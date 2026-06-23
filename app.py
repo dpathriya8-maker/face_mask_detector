@@ -2,7 +2,9 @@ import streamlit as st
 import cv2
 import numpy as np
 from PIL import Image
-from tensorflow.keras.models import load_model
+from tensorflow.keras.applications.vgg16 import VGG16
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Flatten, Dense
 import os
 import requests
 
@@ -15,13 +17,12 @@ st.write("Upload an image or use your webcam to check if people are wearing mask
 MODEL_PATH = "face_mask_detector.h5"
 MODEL_URL = "https://github.com/dpathriya8-maker/face_mask_detector/releases/download/v1.0.0/face_mask_detector.h5"
 
-# Improved download logic that follows GitHub redirects properly
+# 1. Download the weights file safely
 if not os.path.exists(MODEL_PATH):
     with st.spinner("Downloading the AI Model from GitHub Releases... This might take a minute."):
         try:
-            # stream=True allows us to download large files smoothly
             response = requests.get(MODEL_URL, stream=True)
-            response.raise_for_status() # Raise an error if the download failed
+            response.raise_for_status() 
             
             with open(MODEL_PATH, "wb") as f:
                 for chunk in response.iter_content(chunk_size=8192):
@@ -32,21 +33,29 @@ if not os.path.exists(MODEL_PATH):
             st.error(f"Failed to download the model. Error: {e}")
             st.stop()
 
-from tensorflow.keras.utils import custom_object_scope
-from tensorflow.keras.layers import InputLayer
-
-# 3. Load the model using a custom object scope to bypass version conflicts
+# 2. Build the skeleton and load the weights (The Bulletproof Fix)
 @st.cache_resource
 def load_mask_model():
-    # This forces Keras to accept the input layer, even if the formatting is strange
-    with custom_object_scope({'InputLayer': InputLayer}):
-        return load_model(MODEL_PATH, compile=False)
+    # A. Build the exact skeleton from your Jupyter Notebook
+    vgg = VGG16(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
+    vgg.trainable = False
+    
+    model = Sequential()
+    model.add(vgg)
+    model.add(Flatten())
+    model.add(Dense(256, activation='relu'))
+    model.add(Dense(1, activation='sigmoid'))
+    
+    # B. Pour the saved brain (weights) into the skeleton, ignoring version configs!
+    model.load_weights(MODEL_PATH)
+    
+    return model
 
 try:
     model = load_mask_model()
 except Exception as e:
-    st.error("🚨 Error loading the model!")
-    st.exception(e)
+    st.error("🚨 Error loading the model weights!")
+    st.exception(e)  
     st.stop()
 
 # Load the Face Detection Haar Cascade
