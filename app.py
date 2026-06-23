@@ -7,6 +7,7 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Flatten, Dense
 import os
 import requests
+import gc # Added for memory management
 
 # Set up the webpage design
 st.set_page_config(page_title="Face Mask Detector", page_icon="😷", layout="centered")
@@ -33,10 +34,9 @@ if not os.path.exists(MODEL_PATH):
             st.error(f"Failed to download the model. Error: {e}")
             st.stop()
 
-# 2. Build the skeleton and load the weights (The Bulletproof Fix)
+# 2. Build the skeleton and load the weights
 @st.cache_resource
 def load_mask_model():
-    # A. Build the exact skeleton from your Jupyter Notebook
     vgg = VGG16(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
     vgg.trainable = False
     
@@ -46,9 +46,7 @@ def load_mask_model():
     model.add(Dense(256, activation='relu'))
     model.add(Dense(1, activation='sigmoid'))
     
-    # B. Pour the saved brain (weights) into the skeleton, ignoring version configs!
     model.load_weights(MODEL_PATH)
-    
     return model
 
 try:
@@ -84,6 +82,9 @@ def detect_and_predict_mask(image):
             
         cv2.rectangle(img_array, (x, y), (x+w, y+h), color, 3)
         cv2.putText(img_array, label, (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2, cv2.LINE_AA)
+    
+    # CRITICAL ADDITION: Force the server to delete old images from memory
+    gc.collect() 
         
     return img_array, len(faces)
 
