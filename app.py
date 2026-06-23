@@ -32,17 +32,21 @@ if not os.path.exists(MODEL_PATH):
             st.error(f"Failed to download the model. Error: {e}")
             st.stop()
 
-# Load the model normally
-# Load the model normally (ignoring version compile differences)
+from tensorflow.keras.utils import custom_object_scope
+from tensorflow.keras.layers import InputLayer
+
+# 3. Load the model using a custom object scope to bypass version conflicts
 @st.cache_resource
 def load_mask_model():
-    return load_model(MODEL_PATH, compile=False)
+    # This forces Keras to accept the input layer, even if the formatting is strange
+    with custom_object_scope({'InputLayer': InputLayer}):
+        return load_model(MODEL_PATH, compile=False)
 
 try:
     model = load_mask_model()
 except Exception as e:
     st.error("🚨 Error loading the model!")
-    st.exception(e)  # This will print the full technical error trace on your screen
+    st.exception(e)
     st.stop()
 
 # Load the Face Detection Haar Cascade
