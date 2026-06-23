@@ -40,8 +40,8 @@ def load_mask_model():
 try:
     model = load_mask_model()
 except Exception as e:
-    st.error(f"🚨 Error loading the model: {e}")
-    st.text("Tip: If it says 'file signature not found', the downloaded file might be corrupted.")
+    st.error("🚨 Error loading the model!")
+    st.exception(e)  # This will print the full technical error trace on your screen
     st.stop()
 
 # Load the Face Detection Haar Cascade
