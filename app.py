@@ -33,9 +33,10 @@ if not os.path.exists(MODEL_PATH):
             st.stop()
 
 # Load the model normally
+# Load the model normally (ignoring version compile differences)
 @st.cache_resource
 def load_mask_model():
-    return load_model(MODEL_PATH)
+    return load_model(MODEL_PATH, compile=False)
 
 try:
     model = load_mask_model()
